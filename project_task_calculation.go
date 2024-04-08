@@ -32,15 +32,16 @@ type Predecessor struct {
 }
 
 func (t Task) RecalculateDate(predecessorsTask Task, predecessor Predecessor) *Task {
+	Lag, _ := time.ParseDuration(predecessor.Lag)
 	switch predecessor.Type {
 	case StartToFinish:
-		predecessorsTask.EndDate = t.StartDate
+		predecessorsTask.EndDate = t.StartDate.Add(Lag)
 	case FinishToStart:
-		predecessorsTask.StartDate = t.EndDate
+		predecessorsTask.StartDate = t.EndDate.Add(Lag)
 	case StartToStart:
-		predecessorsTask.StartDate = t.StartDate
+		predecessorsTask.StartDate = t.StartDate.Add(Lag)
 	case FinishToFinish:
-		predecessorsTask.EndDate = t.EndDate
+		predecessorsTask.EndDate = t.EndDate.Add(Lag)
 	}
 	return &predecessorsTask
 }
