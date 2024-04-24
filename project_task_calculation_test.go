@@ -28,15 +28,15 @@ func TestProjectTaskCalculation(t *testing.T) {
 	t.Run("Test Success Set Predecessors Finish To Start", func(t *testing.T) {
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "2",
-				Type:         FinishToStart,
-				Lag:          "0",
-				TaskUniqueID: "2",
+				ID:       "2",
+				Type:     FinishToStart,
+				Lag:      "0.0d",
+				UniqueID: "2",
 			},
 		}
 		result := taskParent.RecalculateDate(taskPredessor, taskParent.Predecessors[0])
 		// End date of predessor must be equal to start date of task
-		if result.StartDate != taskParent.EndDate {
+		if result.StartDate != taskParent.EndDate.Add(24*time.Hour) {
 			t.Errorf("got %v want %v", result.StartDate, taskParent.EndDate)
 		}
 	})
@@ -45,10 +45,10 @@ func TestProjectTaskCalculation(t *testing.T) {
 
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "2",
-				Type:         StartToFinish,
-				Lag:          "0",
-				TaskUniqueID: "2",
+				ID:       "2",
+				Type:     StartToFinish,
+				Lag:      "0.0d",
+				UniqueID: "2",
 			},
 		}
 
@@ -62,10 +62,10 @@ func TestProjectTaskCalculation(t *testing.T) {
 	t.Run("Test Success Set Predessor Start To Start", func(t *testing.T) {
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "2",
-				Type:         StartToStart,
-				Lag:          "0",
-				TaskUniqueID: "2",
+				ID:       "2",
+				Type:     StartToStart,
+				Lag:      "0.0d",
+				UniqueID: "2",
 			},
 		}
 		result := taskParent.RecalculateDate(taskPredessor, taskParent.Predecessors[0])
@@ -79,10 +79,10 @@ func TestProjectTaskCalculation(t *testing.T) {
 	t.Run("Test Success Set Predessor Finish To Finsih", func(t *testing.T) {
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "2",
-				Type:         FinishToFinish,
-				Lag:          "0",
-				TaskUniqueID: "2",
+				ID:       "2",
+				Type:     FinishToFinish,
+				Lag:      "0.0d",
+				UniqueID: "2",
 			},
 		}
 		result := taskParent.RecalculateDate(taskPredessor, taskParent.Predecessors[0])
@@ -118,15 +118,17 @@ func TestProjectTaskCalculationWithLag(t *testing.T) {
 	t.Run("Test Success Set Predecessors Finish To Start", func(t *testing.T) {
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "2",
-				Type:         FinishToStart,
-				Lag:          "2160h",
-				TaskUniqueID: "2",
+				ID:       "2",
+				Type:     FinishToStart,
+				Lag:      "2.0d",
+				UniqueID: "2",
 			},
 		}
-		result := taskParent.RecalculateDate(taskPredessor, taskParent.Predecessors[0])
 		want := time.Date(
-			2023, 04, 02, 5, 00, 00, 000000, time.UTC)
+			2023, 04, 03, 5, 00, 00, 000000, time.UTC)
+		taskParent.EndDate = want
+		result := taskParent.RecalculateDate(taskPredessor, taskParent.Predecessors[0])
+		want = want.Add(72 * time.Hour)
 		// End date of predessor must be equal to start date of task
 		if result.StartDate != want {
 			t.Errorf("got %v want %v", result.StartDate, want)
@@ -159,16 +161,16 @@ func TestProjectTaskCalculationWithLag(t *testing.T) {
 
 		taskParent.Predecessors = []Predecessor{
 			{
-				ID:           "3",
-				Type:         FinishToStart,
-				Lag:          "48h",
-				TaskUniqueID: "3",
+				ID:       "3",
+				Type:     FinishToStart,
+				Lag:      "0.0d",
+				UniqueID: "3",
 			},
 			{
-				ID:           "4",
-				Type:         FinishToStart,
-				Lag:          "48h",
-				TaskUniqueID: "4",
+				ID:       "4",
+				Type:     FinishToStart,
+				Lag:      "0.0d",
+				UniqueID: "4",
 			},
 		}
 		// Add first predessor
