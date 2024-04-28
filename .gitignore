@@ -1,0 +1,6 @@
+files/*
+uploads/*
+
+.env
+
+__pycache__
