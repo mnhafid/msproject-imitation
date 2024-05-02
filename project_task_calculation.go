@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -20,8 +21,8 @@ type Task struct {
 	Duration     string
 	Work         int
 	Cost         int
-	Predecessors []Predecessor
-	Successor    []Successor
+	Predecessors []Predecessor `json:"predecessors"`
+	Successors   []Successor   `json:"successors"`
 	DurationType string
 }
 
@@ -71,11 +72,12 @@ func RecalculateDate(pTask Task, predTask Task) *Task {
 	if len(pTask.Predecessors) == 0 {
 		return &pTask
 	}
-
+	fmt.Printf("Task %s Name %s\n", pTask.ID, pTask.Description)
 	predecessor := pTask.Predecessors[0]
 	Lag, _ := ParseDuration(predecessor.Lag)
 	switch predecessor.Type {
 	case FinishToStart:
+		fmt.Printf("Found Predessesor Type [FS]: Start Date Before: %v\n", pTask.StartDate)
 		duration, _ := ParseDuration(pTask.Duration)
 		pTask.EndDate = pTask.StartDate.Add(duration)
 		if pTask.StartDate.Before(predTask.EndDate) {
@@ -85,6 +87,7 @@ func RecalculateDate(pTask Task, predTask Task) *Task {
 		if DefaultDuration == DurationTypeDay {
 			pTask.StartDate = predTask.EndDate.AddDate(0, 0, 1).Add(Lag)
 		}
+		fmt.Printf("Found Predessesor Type [FS]: Start Date After: %v\n", pTask.StartDate)
 	case StartToFinish:
 		pTask.EndDate = predTask.StartDate
 		if DefaultDuration == DurationTypeDay {
