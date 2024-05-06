@@ -195,7 +195,7 @@ func TestProjectTaskCalculationMultiple(t *testing.T) {
 
 		// Add first predessor
 		result := RecalculateDate(taskParent, taskPredecessor[0])
-		result = RecalculateDate(*result, taskPredecessor[1])
+		result = RecalculateDate(result, taskPredecessor[1])
 		// End date of predessor must be equal to start date of task
 		if result.StartDate != taskPredecessor[1].EndDate.Add(24*time.Hour) {
 			t.Errorf("got %v want %v", result.StartDate, taskPredecessor[1].EndDate.Add(24*time.Hour))

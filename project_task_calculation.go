@@ -68,9 +68,9 @@ var (
 	DaysPerMonth    = 20
 )
 
-func RecalculateDate(pTask Task, predTask Task) *Task {
+func RecalculateDate(pTask Task, predTask Task) Task {
 	if len(pTask.Predecessors) == 0 {
-		return &pTask
+		return pTask
 	}
 	fmt.Printf("Task %s Name %s\n", pTask.ID, pTask.Description)
 	predecessor := pTask.Predecessors[0]
@@ -97,9 +97,45 @@ func RecalculateDate(pTask Task, predTask Task) *Task {
 		pTask.StartDate = predTask.StartDate.Add(Lag)
 	case FinishToFinish:
 	default:
-		return &pTask
+		return pTask
 	}
-	return &pTask
+	return pTask
+}
+
+func CalculateStartFinish(pTask Task, predTask Task) (start time.Time, finish time.Time) {
+	if len(pTask.Predecessors) == 0 {
+		return start, pTask.EndDate
+	}
+	start = pTask.StartDate
+	finish = pTask.EndDate
+	fmt.Printf("Task %s Name %s\n", pTask.ID, pTask.Description)
+	predecessor := pTask.Predecessors[0]
+	Lag, _ := ParseDuration(predecessor.Lag)
+	switch predecessor.Type {
+	case FinishToStart:
+		fmt.Printf("Found Predessesor Type [FS]: Start Date Before: %v\n", pTask.StartDate)
+		duration, _ := ParseDuration(pTask.Duration)
+		finish = pTask.StartDate.Add(duration)
+		if pTask.StartDate.Before(predTask.EndDate) {
+			start = predTask.EndDate.Add(Lag)
+			finish = pTask.StartDate.Add(duration)
+		}
+		if DefaultDuration == DurationTypeDay {
+			start = predTask.EndDate.AddDate(0, 0, 1).Add(Lag)
+		}
+		fmt.Printf("Found Predessesor Type [FS]: Start Date After: %v\n", pTask.StartDate)
+	case StartToFinish:
+		finish = predTask.StartDate
+		if DefaultDuration == DurationTypeDay {
+			start = pTask.EndDate.AddDate(0, 0, -1).Add(Lag)
+		}
+	case StartToStart:
+		finish = predTask.StartDate.Add(Lag)
+	case FinishToFinish:
+	default:
+		return
+	}
+	return
 }
 
 // 	Lag := time.Duration(0 * time.Hour)
