@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/dominikbraun/graph"
-	"github.com/dominikbraun/graph/draw"
 )
 
 type TaskResponses struct {
@@ -21,6 +18,7 @@ type TaskResponse struct {
 	UniqueID     string
 	Start        string
 	Finish       string
+	PlanFinish   string
 	Duration     string
 	Work         int
 	Cost         int
@@ -32,6 +30,7 @@ type TaskResponse struct {
 
 const (
 	formatTime = "2006-01-02T15:04"
+	formatDate = "2006-01-02"
 )
 
 func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
@@ -58,64 +57,75 @@ func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
 		}
 		tasks = append(tasks, task)
 	}
-	maps := make(map[string]Task)
-	for i := 0; i < len(tasks); i++ {
-		if len(tasks[i].Predecessors) != 0 {
-			for j := 0; j < len(tasks[i].Predecessors); j++ {
-				for k := 0; k < len(tasks); k++ {
-					// if tasks[i].ID == "16" || tasks[i].ID == "15" {
-					if tasks[k].ID == tasks[i].Predecessors[j].ID {
-						tasks[i].StartDate, tasks[i].EndDate = CalculateStartFinish(tasks[i], tasks[k])
-					}
-					// }
-				}
-			}
-		}
-		maps[tasks[i].ID] = tasks[i]
-	}
-	g := graph.New(graph.IntHash, graph.Directed(), graph.PreventCycles())
-	gw := graph.New(graph.StringHash, graph.Weighted())
+	// maps := make(map[string]Task)
 	for i := 0; i < len(tasks); i++ {
 		if len(tasks[i].Predecessors) != 0 {
 			for j := 0; j < len(tasks[i].Predecessors); j++ {
 				for k := 0; k < len(tasks); k++ {
 					if tasks[k].ID == tasks[i].Predecessors[j].ID {
-						ID, err := strconv.Atoi(tasks[i].ID)
-						if err != nil {
-							panic(err)
-						}
-						g.AddVertex(ID)
-						gw.AddVertex(tasks[i].ID)
-						idPredessesor, err := strconv.Atoi(tasks[k].ID)
-						if err != nil {
-							panic(err)
-						}
-						g.AddVertex(idPredessesor)
-						gw.AddVertex(tasks[k].ID)
-						err = g.AddEdge(ID, idPredessesor, graph.EdgeAttribute("color", "red"))
-						if err != nil {
-							panic(err)
-						}
+						tasks[i].PlanStart, tasks[i].PlanFinish = CalculateStartFinish(tasks[i], tasks[k])
 					}
 				}
 			}
 		}
 	}
-	err := graph.DFS(g, 2, func(value int) bool {
-		id := strconv.Itoa(value)
-		task := maps[id]
-		fmt.Println(id, task.Predecessors)
-		return false
-	})
-	if err != nil {
-		panic(err)
-	}
-	mst, err := graph.MinimumSpanningTree(gw)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(mst.Size())
-	file, _ := os.Create("my-graph.gv")
-	_ = draw.DOT(g, file)
+	// g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
+	// // gw := graph.New(graph.StringHash, graph.Weighted())
+	// for i := 0; i < len(tasks); i++ {
+	// 	if len(tasks[i].Predecessors) != 0 {
+	// 		for j := 0; j < len(tasks[i].Predecessors); j++ {
+	// 			for k := 0; k < len(tasks); k++ {
+	// 				if tasks[k].ID == tasks[i].Predecessors[j].ID {
+	// 					tasks[i].PlanStart = time.Date(2022, 10, 13, 16, 0, 0, 0, time.UTC)
+	// 					tasks[i].PlanFinish = time.Date(2022, 10, 13, 16, 0, 0, 0, time.UTC)
+	// 					g.AddVertex(tasks[i].ID)
+	// 					g.AddVertex(tasks[k].ID)
+	// 					err := g.AddEdge(tasks[i].ID, tasks[k].ID, graph.EdgeAttribute("color", "red"))
+	// 					if err != nil {
+	// 						panic(err)
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// file, _ := os.Create("my-graph.gv")
+	// _ = draw.DOT(g, file)
 	return tasks
+}
+
+func DFS[K comparable, T any](g graph.Graph[K, T], start K, visit func(K) bool) error {
+	adjacencyMap, err := g.AdjacencyMap()
+	if err != nil {
+		return fmt.Errorf("could not get adjacency map: %w", err)
+	}
+
+	if _, ok := adjacencyMap[start]; !ok {
+		return fmt.Errorf("could not find start vertex with hash %v", start)
+	}
+
+	stack := make([]K, 0)
+	visited := make(map[K]bool)
+
+	stack = append(stack, start)
+
+	for len(stack) > 0 {
+		currentHash := stack[len(stack)-1]
+
+		stack = stack[:len(stack)-1]
+
+		if _, ok := visited[currentHash]; !ok {
+			// Stop traversing the graph if the visit function returns true.
+			if stop := visit(currentHash); stop {
+				break
+			}
+			visited[currentHash] = true
+
+			for adjacency := range adjacencyMap[currentHash] {
+				stack = append(stack, adjacency)
+			}
+		}
+	}
+
+	return nil
 }
