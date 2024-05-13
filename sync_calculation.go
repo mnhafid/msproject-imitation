@@ -34,15 +34,28 @@ const (
 )
 
 func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
+	// // set default calendar
+	// c := cal.NewBusinessCalendar()
+	// c.Name = "Bigco, Inc."
+	// c.Description = "Default company calendar"
+
+	// // add holidays that the business observes
+	// c.AddHoliday(
+	// 	us.NewYear,
+	// 	us.MemorialDay,
+	// 	us.LaborDay,
+	// 	us.ChristmasDay,
+	// )
+
+	// // change the default of a Mon - Fri, 9am-5pm work week
+	// c.SetWorkday(time.Saturday, true)
+	// c.SetWorkHours(8*time.Hour, 18*time.Hour+30*time.Minute)
+
 	var tasks []Task
-	// Calculate all project task
 	for i := 0; i < len(tasksReponse); i++ {
-		if tasksReponse[i].Milestone {
-			continue
-		}
 		start, _ := time.Parse(formatTime, tasksReponse[i].Start)
 		finish, _ := time.Parse(formatTime, tasksReponse[i].Finish)
-		task := Task{
+		tasks = append(tasks, Task{
 			ID:           tasksReponse[i].ID,
 			Description:  tasksReponse[i].Name,
 			UniqueID:     tasksReponse[i].UniqueID,
@@ -54,43 +67,22 @@ func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
 			Successors:   tasksReponse[i].Successors,
 			StartDate:    start,
 			EndDate:      finish,
-		}
-		tasks = append(tasks, task)
+			ActualStart:  start,
+			ActualFinish: finish,
+		})
 	}
-	// maps := make(map[string]Task)
 	for i := 0; i < len(tasks); i++ {
 		if len(tasks[i].Predecessors) != 0 {
 			for j := 0; j < len(tasks[i].Predecessors); j++ {
 				for k := 0; k < len(tasks); k++ {
 					if tasks[k].ID == tasks[i].Predecessors[j].ID {
-						tasks[i].PlanStart, tasks[i].PlanFinish = CalculateStartFinish(tasks[i], tasks[k])
+						tasks[i].ActualStart, tasks[i].ActualFinish = CalculateStartFinish(tasks[i], tasks[k])
 					}
 				}
 			}
 		}
 	}
 	// g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
-	// // gw := graph.New(graph.StringHash, graph.Weighted())
-	// for i := 0; i < len(tasks); i++ {
-	// 	if len(tasks[i].Predecessors) != 0 {
-	// 		for j := 0; j < len(tasks[i].Predecessors); j++ {
-	// 			for k := 0; k < len(tasks); k++ {
-	// 				if tasks[k].ID == tasks[i].Predecessors[j].ID {
-	// 					tasks[i].PlanStart = time.Date(2022, 10, 13, 16, 0, 0, 0, time.UTC)
-	// 					tasks[i].PlanFinish = time.Date(2022, 10, 13, 16, 0, 0, 0, time.UTC)
-	// 					g.AddVertex(tasks[i].ID)
-	// 					g.AddVertex(tasks[k].ID)
-	// 					err := g.AddEdge(tasks[i].ID, tasks[k].ID, graph.EdgeAttribute("color", "red"))
-	// 					if err != nil {
-	// 						panic(err)
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// file, _ := os.Create("my-graph.gv")
-	// _ = draw.DOT(g, file)
 	return tasks
 }
 
