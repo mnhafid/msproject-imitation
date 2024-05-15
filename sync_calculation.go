@@ -34,23 +34,6 @@ const (
 )
 
 func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
-	// // set default calendar
-	// c := cal.NewBusinessCalendar()
-	// c.Name = "Bigco, Inc."
-	// c.Description = "Default company calendar"
-
-	// // add holidays that the business observes
-	// c.AddHoliday(
-	// 	us.NewYear,
-	// 	us.MemorialDay,
-	// 	us.LaborDay,
-	// 	us.ChristmasDay,
-	// )
-
-	// // change the default of a Mon - Fri, 9am-5pm work week
-	// c.SetWorkday(time.Saturday, true)
-	// c.SetWorkHours(8*time.Hour, 18*time.Hour+30*time.Minute)
-
 	var tasks []Task
 	for i := 0; i < len(tasksReponse); i++ {
 		start, _ := time.Parse(formatTime, tasksReponse[i].Start)
@@ -76,13 +59,13 @@ func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
 			for j := 0; j < len(tasks[i].Predecessors); j++ {
 				for k := 0; k < len(tasks); k++ {
 					if tasks[k].ID == tasks[i].Predecessors[j].ID {
-						tasks[i].ActualStart, tasks[i].ActualFinish = CalculateStartFinish(tasks[i], tasks[k])
+						tasks[i].StartDate, tasks[i].EndDate = CalculateStartFinish(tasks[i], tasks[k], tasks[i].Predecessors[j])
+
 					}
 				}
 			}
 		}
 	}
-	// g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
 	return tasks
 }
 

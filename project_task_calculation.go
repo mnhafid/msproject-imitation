@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"math"
 	"time"
 
 	"google.golang.org/genproto/googleapis/type/decimal"
@@ -28,7 +28,7 @@ type Task struct {
 	DurationType string
 	ActualStart  time.Time
 	ActualFinish time.Time
-	PlanProgress decimal.Decimal
+	PlanProgress *decimal.Decimal
 	CriticalPath bool
 }
 
@@ -65,42 +65,37 @@ const (
 )
 
 var (
+	HourInDay        = 24
 	DefaultDuration  = DurationTypeDay
 	DefaultStartHour = 8
 	DefaultEndHour   = 17
-	DefaultRestHour  = 1
-	DefaultWorkHour  = float64(DefaultEndHour - DefaultStartHour - DefaultRestHour)
+	DefaultRestHour  = float64(1)
+	DefaultWorkHour  = float64(DefaultEndHour-DefaultStartHour) - DefaultRestHour
 	HoursPerWeek     = 40
 	DaysPerMonth     = 20
 )
 
-func CalculateStartFinish(pTask Task, predTask Task) (start time.Time, finish time.Time) {
+func CalculateStartFinish(pTask Task, predTask Task, predecessor Predecessor) (start time.Time, finish time.Time) {
 	if len(pTask.Predecessors) == 0 {
 		return pTask.StartDate, pTask.EndDate
 	}
-	if pTask.StartDate.After(predTask.StartDate) {
-		return pTask.StartDate, pTask.EndDate
-	}
+
 	start = pTask.StartDate
 	finish = pTask.EndDate
-	predecessor := pTask.Predecessors[0]
 	Lag, _ := ParseDuration(predecessor.Lag)
-	workingDay := CalculateWorkingDay(Lag)
-
+	duration, _ := ParseDuration(pTask.Duration)
 	switch predecessor.Type {
 	case FinishToStart:
-		duration, _ := ParseDuration(pTask.Duration)
-		finish = pTask.StartDate.Add(duration)
-		if pTask.StartDate.Before(predTask.EndDate) {
-			start = predTask.EndDate.Add(Lag)
-			finish = pTask.StartDate.Add(duration)
-		}
+		start = time.Date(predTask.EndDate.Year(), predTask.EndDate.Month(), predTask.EndDate.Day(), DefaultStartHour, 0, 0, 0, time.UTC)
 		if DefaultDuration == DurationTypeDay {
-			start = time.Date(predTask.StartDate.Year(), predTask.StartDate.Month(), predTask.StartDate.Day(), DefaultStartHour, 0, 0, 0, time.UTC).AddDate(0, 0, 1).Add(workingDay)
-			finish = time.Date(predTask.StartDate.Year(), predTask.StartDate.Month(), predTask.StartDate.Day(), DefaultEndHour, 0, 0, 0, time.UTC).Add(duration)
-			if pTask.ID == "4" {
-				fmt.Println("StartToFinish", start, finish, pTask.Description, Lag, pTask.StartDate, pTask.StartDate.Before(predTask.StartDate), predTask.Description, predTask.StartDate, predTask.EndDate)
-			}
+			start = start.AddDate(0, 0, 1)
+		}
+		finish = CalculateWorkingDay(start, duration)
+		if Lag.Hours() > 0 {
+			start, finish = CalculateLag(start, finish, Lag)
+		}
+		if pTask.StartDate.After(start) {
+			start = pTask.StartDate
 		}
 	case StartToFinish:
 		finish = predTask.StartDate
@@ -110,20 +105,64 @@ func CalculateStartFinish(pTask Task, predTask Task) (start time.Time, finish ti
 	case StartToStart:
 		finish = predTask.StartDate.Add(Lag)
 	case FinishToFinish:
-		pTask.EndDate = predTask.EndDate.Add(Lag)
+		start = predTask.EndDate
+		finish = CalculateWorkingDay(start, duration)
+		if Lag.Hours() > 0 {
+			start, finish = CalculateLag(start, finish, Lag)
+		}
 	default:
 		return
 	}
 	return
 }
 
-func CalculateWorkingDay(lag time.Duration) time.Duration {
-	var workingDay time.Duration
-	if DefaultDuration == DurationTypeDay {
-		lagWork := lag.Hours() / DefaultWorkHour * 24
-		workingDay = time.Duration(int64(lagWork) * int64(time.Hour))
+func CalculateWorkingDay(start time.Time, duration time.Duration) time.Time {
+	var workingEndDay time.Time
+	switch DefaultDuration {
+	case DurationTypeDay:
+		workingEndDay = time.Date(start.Year(), start.Month(), start.Day(), DefaultEndHour, 0, 0, 0, time.UTC)
+		if duration.Hours() < DefaultWorkHour {
+			if duration.Hours() > DefaultWorkHour/2 {
+				duration = duration + time.Duration(DefaultRestHour*float64(time.Hour))
+			}
+			workingEndDay = time.Date(start.Year(), start.Month(), start.Day(), DefaultStartHour, 0, 0, 0, time.UTC).Add(duration)
+		}
 	}
 
-	return workingDay
+	return workingEndDay
+
+}
+
+func CalculateLag(start time.Time, finish time.Time, Lag time.Duration) (time.Time, time.Time) {
+	switch DefaultDuration {
+	case DurationTypeDay:
+		deltaDuration := math.Mod(Lag.Hours(), DefaultWorkHour)
+
+		if math.Mod(Lag.Hours(), float64(HourInDay)) == 0 {
+			duration := finish.Sub(start)
+			start = time.Date(start.Year(), start.Month(), start.Day(), DefaultStartHour, 0, 0, 0, time.UTC).AddDate(0, 0, int(Lag.Hours()/float64(HourInDay)))
+			finish = CalculateWorkingDay(start, duration)
+			return start, finish
+		}
+
+		if Lag.Hours() >= DefaultWorkHour && deltaDuration == 0 {
+			start = time.Date(start.Year(), start.Month(), start.Day(), DefaultStartHour, 0, 0, 0, time.UTC).AddDate(0, 0, int(Lag.Hours()/DefaultWorkHour))
+			finish = CalculateWorkingDay(start, time.Duration(math.Mod(Lag.Hours(), DefaultWorkHour)))
+			return start, finish
+		}
+		if Lag.Hours() > DefaultWorkHour && deltaDuration != 0 {
+			roundLag := math.Ceil(float64(Lag.Hours() / DefaultWorkHour))
+			start = time.Date(start.Year(), start.Month(), start.Day(), DefaultStartHour+int(deltaDuration), 0, 0, 0, time.UTC).AddDate(0, 0, int(roundLag))
+			finish = CalculateWorkingDay(start.AddDate(0, 0, 1), time.Duration(math.Mod(Lag.Hours(), DefaultWorkHour)))
+			return start, finish
+		}
+		if Lag.Hours() < DefaultWorkHour {
+			start = time.Date(start.Year(), start.Month(), start.Day(), DefaultStartHour+int(deltaDuration), 0, 0, 0, time.UTC)
+			finish = CalculateWorkingDay(start.AddDate(0, 0, 1), time.Duration(math.Mod(Lag.Hours(), DefaultWorkHour)))
+			return start, finish
+		}
+	}
+
+	return start, finish
 
 }
