@@ -60,7 +60,6 @@ func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
 				for k := 0; k < len(tasks); k++ {
 					if tasks[k].ID == tasks[i].Predecessors[j].ID {
 						tasks[i].StartDate, tasks[i].EndDate = CalculateStartFinish(tasks[i], tasks[k], tasks[i].Predecessors[j])
-
 					}
 				}
 			}
