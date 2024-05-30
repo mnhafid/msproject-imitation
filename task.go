@@ -20,7 +20,7 @@ type Task struct {
 	UniqueID     string
 	StartDate    time.Time
 	EndDate      time.Time
-	Duration     string
+	Duration     float64
 	Work         int
 	Cost         int
 	Predecessors []Predecessor `json:"predecessors"`
@@ -30,6 +30,12 @@ type Task struct {
 	ActualFinish time.Time
 	PlanProgress *decimal.Decimal
 	CriticalPath bool
+	DurationMpp  string
+	EarlyStart   float64
+	EarlyFinish  float64
+	LateStart    float64
+	LateFinish   float64
+	TotalSlack   float64
 }
 
 type Predecessor struct {
@@ -83,7 +89,7 @@ func CalculateStartFinish(pTask Task, predTask Task, predecessor Predecessor) (s
 
 	start = pTask.StartDate
 	finish = pTask.EndDate
-	duration, _ := ParseDuration(pTask.Duration)
+	duration, _ := ParseDuration(pTask.DurationMpp)
 	switch predecessor.Type {
 	case FinishToStart:
 		start = time.Date(predTask.EndDate.Year(), predTask.EndDate.Month(), predTask.EndDate.Day(), DefaultStartHour, 0, 0, 0, time.UTC)

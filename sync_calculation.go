@@ -38,14 +38,16 @@ func CalculateAllProjectTask(tasksReponse []TaskResponse) []Task {
 	for i := 0; i < len(tasksReponse); i++ {
 		start, _ := time.Parse(formatTime, tasksReponse[i].Start)
 		finish, _ := time.Parse(formatTime, tasksReponse[i].Finish)
+		unit, value := splitLag(tasksReponse[i].Duration)
 		tasks = append(tasks, Task{
 			ID:           tasksReponse[i].ID,
 			Description:  tasksReponse[i].Name,
 			UniqueID:     tasksReponse[i].UniqueID,
-			Duration:     tasksReponse[i].Duration,
+			Duration:     float64(value),
+			DurationMpp:  tasksReponse[i].Duration,
+			DurationType: unit,
 			Work:         tasksReponse[i].Work,
 			Cost:         tasksReponse[i].Cost,
-			DurationType: tasksReponse[i].DurationType,
 			Predecessors: tasksReponse[i].Predecessors,
 			Successors:   tasksReponse[i].Successors,
 			StartDate:    start,
