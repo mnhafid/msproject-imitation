@@ -41,6 +41,7 @@ type Predecessor struct {
 
 type Successor struct {
 	ID           string
+	UniqueID     string
 	TaskUniqueID string
 	Type         string
 	Lag          string
