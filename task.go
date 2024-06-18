@@ -15,27 +15,30 @@ const (
 )
 
 type Task struct {
-	ID           string
-	Description  string
-	UniqueID     string
-	StartDate    time.Time
-	EndDate      time.Time
-	Duration     float64
-	Work         int
-	Cost         int
-	Predecessors []Predecessor `json:"predecessors"`
-	Successors   []Successor   `json:"successors"`
-	DurationType string
-	ActualStart  time.Time
-	ActualFinish time.Time
-	PlanProgress *decimal.Decimal
-	CriticalPath bool
-	DurationMpp  string
-	EarlyStart   float64
-	EarlyFinish  float64
-	LateStart    float64
-	LateFinish   float64
-	TotalSlack   float64
+	ID             string
+	Description    string
+	UniqueID       string
+	StartDate      time.Time
+	EndDate        time.Time
+	Duration       float64
+	Wbs            string
+	Work           int
+	Cost           int
+	Predecessors   []Predecessor `json:"predecessors"`
+	Successors     []Successor   `json:"successors"`
+	DurationType   string
+	ActualStart    time.Time
+	ActualFinish   time.Time
+	PlanProgress   *decimal.Decimal
+	CriticalPath   bool
+	DurationMpp    string
+	EarlyStart     float64
+	EarlyFinish    float64
+	LateStart      float64
+	LateFinish     float64
+	TotalSlack     float64
+	DataType       string
+	ChildUniqueIDs []string
 }
 
 type Predecessor struct {
