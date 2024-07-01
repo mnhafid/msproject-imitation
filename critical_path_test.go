@@ -360,7 +360,11 @@ func TestCriticalPathWithHeader(t *testing.T) {
 		}
 	})
 
-	t.Run("Test Success Critical Path HEader with FS", func(t *testing.T) {
+}
+
+func TestCriticalPathWithHeaderDependancy(t *testing.T) {
+
+	t.Run("Test Success Critical Path Header with FS", func(t *testing.T) {
 		TaskCriticalPath := []Task{
 			{UniqueID: "1",
 				Duration:       3,
@@ -448,18 +452,401 @@ func TestCriticalPathWithHeader(t *testing.T) {
 			},
 		}
 
-		// Expected Result
-		expected := float64(0)
-
+		slackTaskOne := float64(0)
+		slackTaskFive := float64(2)
+		slackTaskEleven := float64(1)
 		taskCpm := calculateCriticalPath(TaskCriticalPath)
-		if taskCpm[0].TotalSlack != expected {
-			t.Errorf("Expected %v but got %v", expected, taskCpm[0].TotalSlack)
+		if taskCpm[0].TotalSlack != slackTaskOne {
+			t.Errorf("Expected %v but got %v", slackTaskOne, taskCpm[0].TotalSlack)
 		}
-		if taskCpm[6].TotalSlack != float64(2) {
-			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[6].UniqueID, 2, taskCpm[6].TotalSlack)
+		if taskCpm[4].TotalSlack != slackTaskFive {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[4].UniqueID, slackTaskFive, taskCpm[4].TotalSlack)
 		}
-		if taskCpm[10].TotalSlack != float64(1) {
-			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[10].UniqueID, 1, taskCpm[10].TotalSlack)
+		if taskCpm[10].TotalSlack != slackTaskEleven {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[10].UniqueID, slackTaskEleven, taskCpm[10].TotalSlack)
+		}
+	})
+}
+
+func TestCriticalPathWithHeaderDependancyAndChild(t *testing.T) {
+
+	t.Run("Test Success Critical Path Header with FS", func(t *testing.T) {
+		TaskCriticalPath := []Task{
+			{UniqueID: "1",
+				Duration:       3,
+				Wbs:            "1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"2", "7", "10"},
+			},
+			{UniqueID: "2",
+				Duration:       3,
+				Wbs:            "1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"3", "4", "5"},
+			},
+			{UniqueID: "3",
+				Duration:       1,
+				Wbs:            "1.1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "4",
+				Duration:       1,
+				Wbs:            "1.1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{{UniqueID: "4", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "5",
+				Duration:       1,
+				Wbs:            "1.1.3",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"6"},
+			},
+			{UniqueID: "6",
+				Duration:       1,
+				Wbs:            "1.1.3.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "7",
+				Duration:       1,
+				Wbs:            "1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"8", "9"},
+			},
+			{UniqueID: "8",
+				Duration:       1,
+				Wbs:            "1.2.1",
+				Successors:     []Successor{{UniqueID: "11", Lag: "0.0d", Type: "FS"}},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "9",
+				Duration:       1,
+				Wbs:            "1.2.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "10",
+				Duration:       2,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{{UniqueID: "4", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{"11", "12"},
+			},
+			{UniqueID: "11",
+				Duration:       1,
+				Wbs:            "1.3.1",
+				Predecessors:   []Predecessor{{UniqueID: "8", Lag: "0.0d", Type: "FS"}},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "12",
+				Duration:       2,
+				Wbs:            "1.3.2",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+		}
+
+		slackTaskOne := float64(0)
+		slackTaskFive := float64(2)
+		slackTaskEleven := float64(0)
+		taskCpm := calculateCriticalPath(TaskCriticalPath)
+		if taskCpm[0].TotalSlack != slackTaskOne {
+			t.Errorf("Expected %v but got %v", slackTaskOne, taskCpm[0].TotalSlack)
+		}
+		if taskCpm[4].TotalSlack != slackTaskFive {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[4].UniqueID, slackTaskFive, taskCpm[4].TotalSlack)
+		}
+		if taskCpm[10].TotalSlack != slackTaskEleven {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[10].UniqueID, slackTaskEleven, taskCpm[10].TotalSlack)
+		}
+	})
+}
+
+func TestCriticalPathWithHeaderDependancyAndChildDependancy(t *testing.T) {
+
+	t.Run("Test Success Critical Path Header with FS", func(t *testing.T) {
+		TaskCriticalPath := []Task{
+			{UniqueID: "1",
+				Duration:       3,
+				Wbs:            "1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"2", "7", "10"},
+			},
+			{UniqueID: "2",
+				Duration:       3,
+				Wbs:            "1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"3", "4", "5"},
+			},
+			{UniqueID: "3",
+				Duration:       1,
+				Wbs:            "1.1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "4",
+				Duration:       1,
+				Wbs:            "1.1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{{UniqueID: "4", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "5",
+				Duration:       1,
+				Wbs:            "1.1.3",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"6"},
+			},
+			{UniqueID: "6",
+				Duration:       1,
+				Wbs:            "1.1.3.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "7",
+				Duration:       1,
+				Wbs:            "1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"8", "9"},
+			},
+			{UniqueID: "8",
+				Duration:       1,
+				Wbs:            "1.2.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{{UniqueID: "12", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "9",
+				Duration:       1,
+				Wbs:            "1.2.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "10",
+				Duration:       2,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{{UniqueID: "4", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{"11", "12"},
+			},
+			{UniqueID: "11",
+				Duration:       1,
+				Wbs:            "1.3.1",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "12",
+				Duration:       2,
+				Wbs:            "1.3.2",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{{UniqueID: "8", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+		}
+
+		slackTaskOne := float64(0)
+		slackTaskEight := float64(0)
+		slackTaskTwelve := float64(0)
+		taskCpm := calculateCriticalPath(TaskCriticalPath)
+		if taskCpm[0].TotalSlack != slackTaskOne {
+			t.Errorf("Expected %v but got %v", slackTaskOne, taskCpm[0].TotalSlack)
+		}
+		if taskCpm[7].TotalSlack != slackTaskEight {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[4].UniqueID, slackTaskEight, taskCpm[4].TotalSlack)
+		}
+		if taskCpm[11].TotalSlack != slackTaskTwelve {
+			t.Errorf("[TASK]: %v Expected %v but got %v", taskCpm[10].UniqueID, slackTaskTwelve, taskCpm[10].TotalSlack)
+		}
+	})
+}
+
+func TestCriticalPathWithHeaderDependancyFSFFSS(t *testing.T) {
+
+	t.Run("Test Success Critical Path Header with FS", func(t *testing.T) {
+		TaskCriticalPath := []Task{
+			{UniqueID: "1",
+				Duration:       4,
+				Wbs:            "1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"2", "7", "10"},
+			},
+			{UniqueID: "2",
+				Duration:       3,
+				Wbs:            "1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"3", "4", "5"},
+			},
+			{UniqueID: "3",
+				Duration:       1,
+				Wbs:            "1.1.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "4",
+				Duration:       1,
+				Wbs:            "1.1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{{UniqueID: "10", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "5",
+				Duration:       1,
+				Wbs:            "1.1.3",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"6"},
+			},
+			{UniqueID: "6",
+				Duration:       1,
+				Wbs:            "1.1.3.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "7",
+				Duration:       3,
+				Wbs:            "1.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"8", "9", "13"},
+			},
+			{UniqueID: "8",
+				Duration:       1,
+				Wbs:            "1.2.1",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{{UniqueID: "12", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "9",
+				Duration:       2,
+				Wbs:            "1.2.2",
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "10",
+				Duration:       2,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{{UniqueID: "4", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{"11", "12"},
+			},
+			{UniqueID: "11",
+				Duration:       1,
+				Wbs:            "1.3.1",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "12",
+				Duration:       2,
+				Wbs:            "1.3.2",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{{UniqueID: "8", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "13",
+				Duration:       1,
+				Wbs:            "1.3.2",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "14",
+				Duration:       4,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{"15", "17", "18", "19", "20"},
+			},
+			{UniqueID: "15",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{"16"},
+			},
+			{UniqueID: "16",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{{UniqueID: "18", Lag: "0.0d", Type: "FF"}},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "17",
+				Duration:       1,
+				Wbs:            "1.3",
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "18",
+				Duration:     1,
+				Wbs:          "1.3",
+				Predecessors: []Predecessor{},
+				Successors: []Successor{{UniqueID: "16", Lag: "0.0d", Type: "FF"},
+					{UniqueID: "19", Lag: "0.0d", Type: "FS"},
+					{UniqueID: "22", Lag: "0.0d", Type: "SS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "19",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{{UniqueID: "18", Lag: "0.0d", Type: "FS"}},
+				Successors:     []Successor{{UniqueID: "20", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "20",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{{UniqueID: "19", Lag: "0.0d", Type: "FS"}},
+				Successors:     []Successor{{UniqueID: "21", Lag: "0.0d", Type: "FS"}},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "21",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{{UniqueID: "20", Lag: "0.0d", Type: "FS"}},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+			{UniqueID: "22",
+				Duration:       1,
+				Wbs:            "1.3",
+				Predecessors:   []Predecessor{{UniqueID: "18", Lag: "0.0d", Type: "SS"}},
+				Successors:     []Successor{},
+				ChildUniqueIDs: []string{},
+			},
+		}
+
+		expected := []float64{0, 1, 3, 1, 3, 3, 1, 1, 2, 1, 2, 1, 3, 0, 3, 3, 3, 0, 0, 0, 0, 3}
+		taskCpm := calculateCriticalPath(TaskCriticalPath)
+		for id := range taskCpm {
+			if taskCpm[id].TotalSlack != expected[id] {
+				t.Errorf("Task Unique ID: %v Expected %v but got %v", taskCpm[id].UniqueID, expected[id], taskCpm[id].TotalSlack)
+			}
 		}
 	})
 }
