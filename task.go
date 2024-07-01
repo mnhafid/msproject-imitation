@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"math"
 	"time"
 
-	"google.golang.org/genproto/googleapis/type/decimal"
+	"github.com/jackc/pgtype"
 )
 
 const (
@@ -29,7 +30,8 @@ type Task struct {
 	DurationType   string
 	ActualStart    time.Time
 	ActualFinish   time.Time
-	PlanProgress   *decimal.Decimal
+	PlanProgress   float64
+	ActualProgress float64
 	CriticalPath   bool
 	DurationMpp    string
 	EarlyStart     float64
@@ -39,6 +41,8 @@ type Task struct {
 	TotalSlack     float64
 	DataType       string
 	ChildUniqueIDs []string
+	Etc            time.Time
+	StartEtc       time.Time
 }
 
 type Predecessor struct {
@@ -54,6 +58,27 @@ type Successor struct {
 	TaskUniqueID string
 	Type         string
 	Lag          string
+}
+type ProjectTasksProgress struct {
+	ID                *string          `gorm:"primary_key;default:gen_random_uuid();column:id;type:UUID;" json:"id"`
+	ProjectID         *string          `gorm:"column:project_id;type:UUID;" json:"project_id"`
+	Breakdown         *string          `gorm:"column:breakdown;type:VARCHAR;size:16;" json:"breakdown"`
+	Description       *string          `gorm:"column:description;type:TEXT;" json:"description"`
+	StartDate         *time.Time       `gorm:"column:start_date;type:DATE;" json:"start_date"`
+	EndDate           *time.Time       `gorm:"column:end_date;type:DATE;" json:"end_date"`
+	StartETC          *time.Time       `gorm:"column:start_etc;type:DATE;" json:"start_etc"`
+	ETC               *time.Time       `gorm:"column:etc;type:DATE;" json:"etc"`
+	Predecessor       pgtype.JSONB     `gorm:"column:predecessor;type:JSONB;default:'[]'" json:"predecessor"`
+	Successor         pgtype.JSONB     `gorm:"column:successor;type:JSONB;default:'[]'" json:"successor"`
+	IsCriticalPath    *bool            `gorm:"column:is_critical_path;type:bool;" json:"is_critical_path"`
+	DataType          *string          `gorm:"column:data_type;type:VARCHAR;default:header;" json:"data_type"`
+	UniqueID          *string          `gorm:"column:unique_id;type:int8;" json:"unique_id"`
+	PlanProgressItd   *float64         `gorm:"->;column:plan_progress_itd;type:FLOAT8;default:0;" json:"plan_progress_itd"`
+	ActualProgressItd *float64         `gorm:"->;column:actual_progress_itd;type:FLOAT8;default:0;" json:"actual_progress_itd"`
+	Duration          *int             `gorm:"->;column:duration;type:INT4;default:0;" json:"duration"`
+	ActualStartDate   *time.Time       `gorm:"->;column:actual_start_date;type:DATE;" json:"actual_start_date"`
+	ActualEndDate     *time.Time       `gorm:"->;column:actual_end_date;type:DATE;" json:"actual_end_date"`
+	Child             []sql.NullString `gorm:"->;column:child;type:varchar(64)[];" json:"child"`
 }
 
 const (
