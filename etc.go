@@ -48,7 +48,7 @@ func CalculateEtcTask(tasksReponse []ProjectTasksProgress) []ProjectTasksProgres
 func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 	for i := range tasks {
 		duration := tasks[i].EndDate.Sub(tasks[i].StartDate)
-		durationDays := math.Ceil(duration.Hours()/24) + 1
+		durationDays := math.Ceil(duration.Hours() / 24)
 		// set data for old data
 		if tasks[i].StartEtc.IsZero() {
 			tasks[i].StartEtc = tasks[i].StartDate
@@ -60,16 +60,7 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 			progresTask = tasks[i].ActualProgress
 		}
 
-		startDate := time.Now()
-		startEtc := tasks[i].StartEtc
-
-		if startDate.Before(tasks[i].StartDate) {
-			startDate = tasks[i].StartDate
-		}
-
-		if !tasks[i].ActualStart.IsZero() {
-			startEtc = tasks[i].ActualStart
-		}
+		startEtc := tasks[i].StartDate
 
 		for _, pred := range tasks[i].Predecessors {
 			lag := float64(0)
@@ -82,17 +73,22 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 			}
 			switch pred.Type {
 			case "FS":
-				if tasks[taskIndices[pred.UniqueID]].Etc.After(startDate) {
-					startDate = tasks[taskIndices[pred.UniqueID]].Etc
+				if tasks[taskIndices[pred.UniqueID]].Etc.After(startEtc) {
+					startEtc = tasks[taskIndices[pred.UniqueID]].Etc
 					continue
 				}
-				startDate = tasks[taskIndices[pred.UniqueID]].Etc
-				if startDate.Before(tasks[i].StartDate) {
-					startDate = startDate.AddDate(0, 0, int(lag))
+				startEtc = tasks[taskIndices[pred.UniqueID]].Etc
+				if startEtc.Before(tasks[i].StartDate) {
+					startEtc = startEtc.AddDate(0, 0, int(lag))
 				}
+			case "FF":
+			case "SF":
+			case "SS":
 			}
+
 		}
-		ETC := CalculateEtc(durationDays, startEtc, startDate, progresTask)
+		ETC := CalculateEtc(durationDays, startEtc, tasks[i].StartDate, progresTask)
+		tasks[i].StartEtc = startEtc
 		tasks[i].Etc = ETC
 	}
 
@@ -100,11 +96,11 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 
 }
 func CalculateEtc(duration float64, startEtc time.Time, planDate time.Time, actualProgressItd float64) time.Time {
-
 	ratio := math.Pow(10, float64(2))
 	actualDurationItd := math.Ceil(time.Since(planDate).Hours() / 24)
 	// default pace using pace Plan
 	pace := 100 / duration
+	fmt.Println("pace", pace, duration)
 	// if have actual progress, calculate pace using actual progress
 	if actualProgressItd != 0 {
 		pace = actualProgressItd / actualDurationItd
