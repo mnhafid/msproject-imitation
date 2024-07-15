@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/dominikbraun/graph"
 )
@@ -193,6 +195,7 @@ func calculateCriticalComponent(tasks []Task) []Task {
 
 func calculateCriticalPath(tasks []Task) []Task {
 	taskIndices := make(map[string]int)
+	var dates []time.Time
 	for i, task := range tasks {
 		taskIndices[task.UniqueID] = i
 	}
@@ -201,6 +204,7 @@ func calculateCriticalPath(tasks []Task) []Task {
 	for i := range tasks {
 		_ = g.AddVertex(tasks[i].UniqueID)
 		_ = gTree.AddVertex(tasks[i].UniqueID)
+		dates = append(dates, tasks[i].StartDate)
 	}
 	for i := range tasks {
 		for j := range tasks[i].Successors {
@@ -211,6 +215,10 @@ func calculateCriticalPath(tasks []Task) []Task {
 		}
 	}
 
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i].Before(dates[j])
+	})
+	rootDate := dates[0]
 	longestFinish := float64(0)
 	for j := len(tasks) - 1; j >= 0; j-- {
 		var CurrentChild []string
@@ -219,6 +227,11 @@ func calculateCriticalPath(tasks []Task) []Task {
 			return false
 		})
 		tasks[taskIndices[tasks[j].UniqueID]].EarlyStart = 0
+		if rootDate == tasks[j].StartDate {
+			tasks[taskIndices[tasks[j].UniqueID]].EarlyStart = 0
+		} else {
+			tasks[taskIndices[tasks[j].UniqueID]].EarlyStart = tasks[taskIndices[tasks[j].UniqueID]].StartDate.Sub(rootDate).Hours()/24 + 1
+		}
 		tasks[taskIndices[tasks[j].UniqueID]].EarlyFinish = tasks[taskIndices[tasks[j].UniqueID]].Duration
 
 		if longestFinish < tasks[j].EarlyFinish {
@@ -245,9 +258,32 @@ func calculateCriticalPath(tasks []Task) []Task {
 				}
 			}
 		}
-		fmt.Println("[RESULT]", "Task: ", tasks[j].UniqueID, "ES", tasks[j].EarlyStart, "EF", tasks[j].EarlyFinish, "LS: ", tasks[j].LateStart, "LF: ", tasks[j].LateFinish, "Duration: ", tasks[j].Duration, "TotalSlack: ", tasks[j].TotalSlack)
+		if len(tasks[j].ChildUniqueIDs) > 0 {
+			for _, child := range tasks[j].ChildUniqueIDs {
+				if tasks[taskIndices[child]].EarlyFinish > tasks[j].EarlyFinish {
+					tasks[j].EarlyFinish = tasks[taskIndices[child]].EarlyFinish
+				}
+				if tasks[taskIndices[child]].EarlyStart < tasks[j].EarlyStart {
+					tasks[j].EarlyStart = tasks[taskIndices[child]].EarlyStart
+				}
+			}
+		}
+		if len(tasks[j].ChildUniqueIDs) > 0 {
+			for _, child := range tasks[j].ChildUniqueIDs {
+				if tasks[taskIndices[child]].EarlyFinish > tasks[j].EarlyFinish {
+					tasks[j].EarlyFinish = tasks[taskIndices[child]].EarlyFinish
+				}
+				if tasks[taskIndices[child]].EarlyStart < tasks[j].EarlyStart {
+					tasks[j].EarlyStart = tasks[taskIndices[child]].EarlyStart
+				}
+			}
+		}
 	}
 
+	// Step 1: Foward Pass
+	// Running when have predecessor
+	// ES = 0
+	// EF = ES + duration
 	for i := range tasks {
 		var currentPredID []string
 		_ = graph.BFS(g, tasks[i].UniqueID, func(value string) bool {
@@ -298,10 +334,10 @@ func calculateCriticalPath(tasks []Task) []Task {
 				}
 			}
 		}
-
 	}
 
 	// Step 2: Backward Pass
+	// Running when have successor
 	// LS = LF - duration
 	// LF = min(ES of all successors)
 	for i := range tasks {
@@ -336,7 +372,6 @@ func calculateCriticalPath(tasks []Task) []Task {
 						fmt.Println("FS", tasks[taskIndices[currentPredID[j]]].UniqueID, tasks[taskIndices[successor.UniqueID]].UniqueID, tasks[taskIndices[currentPredID[j]]].LateFinish)
 					case "FF":
 						// tasks[taskIndices[currentPredID[j]]].LateFinish = tasks[taskIndices[successor.UniqueID]].LateFinish
-						fmt.Println("FF", tasks[taskIndices[currentPredID[j]]].UniqueID, tasks[taskIndices[successor.UniqueID]].UniqueID, tasks[taskIndices[currentPredID[j]]].LateFinish)
 					case "SF":
 						tasks[taskIndices[currentPredID[j]]].LateFinish = tasks[taskIndices[successor.UniqueID]].LateFinish
 						// if lag > 0 {
@@ -346,7 +381,6 @@ func calculateCriticalPath(tasks []Task) []Task {
 					case "SS":
 						// tasks[taskIndices[currentPredID[j]]].LateStart = tasks[taskIndices[successor.UniqueID]].LateStart
 						// tasks[taskIndices[currentPredID[j]]].LateFinish = tasks[taskIndices[successor.UniqueID]].LateFinish
-						fmt.Println("SS", tasks[taskIndices[currentPredID[j]]].UniqueID, tasks[taskIndices[successor.UniqueID]].UniqueID, tasks[taskIndices[currentPredID[j]]].LateFinish)
 					}
 				}
 				if len(tasks[taskIndices[currentPredID[j]]].ChildUniqueIDs) != 0 {
@@ -368,8 +402,6 @@ func calculateCriticalPath(tasks []Task) []Task {
 		if tasks[i].TotalSlack == 0 {
 			tasks[i].CriticalPath = true
 		}
-		fmt.Println("[RESULT]", "Task: ", tasks[i].UniqueID, "ES", tasks[i].EarlyStart, "EF", tasks[i].EarlyFinish, "LS: ", tasks[i].LateStart, "LF: ", tasks[i].LateFinish, "Duration: ", tasks[i].Duration, "TotalSlack: ", tasks[i].TotalSlack)
 	}
-	fmt.Println(longestFinish)
 	return tasks
 }

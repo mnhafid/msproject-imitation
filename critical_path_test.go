@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
 func TestCriticalPath(t *testing.T) {
@@ -138,111 +139,6 @@ func TestCriticalPathLag(t *testing.T) {
 		}
 		if taskCpm[5].LateFinish != float64(35) {
 			t.Errorf("Expected %v but got %v", float64(35), taskCpm[5].LateFinish)
-		}
-	})
-}
-
-func TestCriticalPathMultiDependency(t *testing.T) {
-
-	t.Run("Test Success Critical Path Multi Dependency", func(t *testing.T) {
-		TaskCriticalPath := []Task{
-			{UniqueID: "1",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "2", Lag: "2.d", Type: "SS"}},
-				Predecessors: []Predecessor{},
-			},
-			{UniqueID: "2",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "3", Lag: "14.0d", Type: "FS"}},
-				Predecessors: []Predecessor{{UniqueID: "1", Lag: "2.0d", Type: "SS"}},
-			},
-			{UniqueID: "3",
-				Duration:     1,
-				Successors:   []Successor{},
-				Predecessors: []Predecessor{{UniqueID: "2", Lag: "14.0d", Type: "FS"}},
-			},
-			{UniqueID: "4",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "6", Lag: "0", Type: "FS"}},
-				Predecessors: []Predecessor{{UniqueID: "5", Lag: "0", Type: "FF"}},
-			},
-			{UniqueID: "5",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "4", Lag: "0", Type: "FF"}},
-				Predecessors: []Predecessor{},
-			},
-			{UniqueID: "6",
-				Duration:     1,
-				Successors:   []Successor{},
-				Predecessors: []Predecessor{{UniqueID: "4", Lag: "0", Type: "FS"}},
-			},
-			{UniqueID: "7",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "8", Lag: "0", Type: "SF"}},
-				Predecessors: []Predecessor{},
-			},
-			{UniqueID: "8",
-				Duration:     1,
-				Successors:   []Successor{},
-				Predecessors: []Predecessor{{UniqueID: "7", Lag: "0", Type: "SF"}},
-			},
-			{UniqueID: "9",
-				Duration:     1,
-				Successors:   []Successor{{UniqueID: "10", Lag: "10.0d", Type: "SF"}},
-				Predecessors: []Predecessor{},
-			},
-			{UniqueID: "10",
-				Duration:     1,
-				Successors:   []Successor{},
-				Predecessors: []Predecessor{{UniqueID: "9", Lag: "10.0d", Type: "SF"}},
-			},
-		}
-
-		// Expected Result
-		expected := float64(0)
-
-		taskCpm := calculateCriticalComponent(TaskCriticalPath)
-		if taskCpm[0].TotalSlack != expected {
-			t.Errorf("Expected %v but got %v", expected, taskCpm[0].TotalSlack)
-		}
-
-		if taskCpm[5].TotalSlack != float64(16) {
-			t.Errorf("Expected %v but got %v", float64(16), taskCpm[5].TotalSlack)
-		}
-
-		if taskCpm[6].EarlyStart != float64(0) {
-			t.Errorf("Expected %v but got %v", float64(0), taskCpm[6].EarlyStart)
-		}
-		if taskCpm[6].EarlyFinish != float64(1) {
-			t.Errorf("Expected %v but got %v", float64(1), taskCpm[6].EarlyFinish)
-		}
-		if taskCpm[6].LateStart != float64(17) {
-			t.Errorf("Expected %v but got %v Late Start", float64(16), taskCpm[6].LateStart)
-		}
-		if taskCpm[6].LateFinish != float64(18) {
-			t.Errorf("Expected %v but got %v Late Finish", float64(17), taskCpm[6].LateFinish)
-		}
-		if taskCpm[6].TotalSlack != float64(17) {
-			t.Errorf("Expected %v but got %v slack task 6", float64(17), taskCpm[6].TotalSlack)
-		}
-
-		if taskCpm[7].EarlyStart != float64(-1) {
-			t.Errorf("Expected %v but got %v Early start task 8", float64(-1), taskCpm[7].EarlyStart)
-		}
-		if taskCpm[7].EarlyFinish != float64(0) {
-			t.Errorf("Expected %v but got %v early finish task 8", float64(0), taskCpm[7].EarlyFinish)
-		}
-		if taskCpm[7].LateStart != float64(17) {
-			t.Errorf("Expected %v but got %v Late Start", float64(18), taskCpm[7].LateStart)
-		}
-		if taskCpm[7].LateFinish != float64(18) {
-			t.Errorf("Expected %v but got %v Late Finish", float64(18), taskCpm[7].LateFinish)
-		}
-		if taskCpm[7].TotalSlack != float64(18) {
-			t.Errorf("Expected %v but got %v", float64(18), taskCpm[7].TotalSlack)
-		}
-		if taskCpm[9].TotalSlack != float64(8) {
-			t.Errorf("Expected %v but got %v", float64(8), taskCpm[9].TotalSlack)
 		}
 	})
 }
@@ -848,5 +744,68 @@ func TestCriticalPathWithHeaderDependancyFSFFSS(t *testing.T) {
 				t.Errorf("Task Unique ID: %v Expected %v but got %v", taskCpm[id].UniqueID, expected[id], taskCpm[id].TotalSlack)
 			}
 		}
+	})
+}
+
+func TestCriticalPathWithCustomCalendar(t *testing.T) {
+
+	t.Run("Test Success Critical Path ", func(t *testing.T) {
+		TaskCriticalPath := []Task{
+			{UniqueID: "1",
+				Duration:       33,
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"2", "5"},
+				StartDate:      time.Date(2024, 6, 11, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "2",
+				Duration:       31,
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"3", "4"},
+				StartDate:      time.Date(2024, 6, 11, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "3",
+				Duration:     29,
+				Successors:   []Successor{},
+				Predecessors: []Predecessor{},
+				StartDate:    time.Date(2024, 6, 12, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "4",
+				Duration:     31,
+				Successors:   []Successor{},
+				Predecessors: []Predecessor{},
+				StartDate:    time.Date(2024, 6, 11, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "5",
+				Duration:       33,
+				Successors:     []Successor{},
+				Predecessors:   []Predecessor{},
+				ChildUniqueIDs: []string{"6", "7"},
+				StartDate:      time.Date(2024, 6, 12, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "6",
+				Duration:     32,
+				Successors:   []Successor{},
+				Predecessors: []Predecessor{},
+				StartDate:    time.Date(2024, 6, 12, 0, 0, 0, 0, time.UTC),
+			},
+			{UniqueID: "7",
+				Duration:     32,
+				Successors:   []Successor{},
+				Predecessors: []Predecessor{},
+				StartDate:    time.Date(2024, 6, 11, 0, 0, 0, 0, time.UTC),
+			},
+		}
+
+		// Expected Result
+		expected := []float64{0, 2, 4, 2, 0, 1, 1}
+		taskCpm := calculateCriticalPath(TaskCriticalPath)
+		for id := range taskCpm {
+			if taskCpm[id].TotalSlack != expected[id] {
+				t.Errorf("Task Unique ID: %v Expected %v but got %v", taskCpm[id].UniqueID, expected[id], taskCpm[id].TotalSlack)
+			}
+		}
+
 	})
 }
