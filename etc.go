@@ -87,7 +87,7 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 			}
 
 		}
-		ETC := CalculateEtc(durationDays, startEtc, tasks[i].StartDate, progresTask, tasks[i].ProjectCalendar)
+		ETC := CalculateEtc(durationDays, startEtc, progresTask, tasks[i].ProjectCalendar)
 		tasks[i].StartEtc = startEtc
 		tasks[i].Etc = ETC
 	}
@@ -95,9 +95,9 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 	return tasks
 
 }
-func CalculateEtc(duration float64, startEtc time.Time, planDate time.Time, actualProgressItd float64, pc ProjectCalendar) time.Time {
+func CalculateEtc(duration float64, startEtc time.Time, actualProgressItd float64, pc ProjectCalendar) time.Time {
 	ratio := math.Pow(10, float64(2))
-	actualDurationItd := math.Ceil(time.Since(planDate).Hours() / 24)
+	actualDurationItd := math.Ceil(time.Since(startEtc).Hours() / 24)
 	// default pace using pace Plan
 	pace := 100 / duration
 	// if have actual progress, calculate pace using actual progress
