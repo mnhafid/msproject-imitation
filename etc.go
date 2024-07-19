@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+const (
+	formatTime     = "2006-01-02T15:04"
+	formatDate     = "2006-01-02"
+	MUST_FINISH_ON = "MUST_FINISH_ON"
+	MUST_START_ON  = "MUST_START_ON"
+)
+
 func CalculateEtcTask(tasksReponse []ProjectTasksProgress) []ProjectTasksProgress {
 	var tasks []Task
 	taskIndices := make(map[string]int)
@@ -87,11 +94,29 @@ func PrepareEtc(tasks []Task, taskIndices map[string]int) []Task {
 			}
 
 		}
+		if tasks[i].ConstraintType == MUST_START_ON {
+			constraintDate, _ := time.Parse(formatTime, tasks[i].ConstraintDate)
+			tasks[i].StartEtc = constraintDate
+		}
 		ETC := CalculateEtc(durationDays, startEtc, progresTask, tasks[i].ProjectCalendar)
 		tasks[i].StartEtc = startEtc
 		tasks[i].Etc = ETC
 	}
 
+	for j := len(tasks) - 1; j >= 0; j-- {
+		if tasks[j].ConstraintType == MUST_FINISH_ON {
+			constraintDate, _ := time.Parse(formatTime, tasks[j].ConstraintDate)
+			tasks[j].Etc = constraintDate
+		}
+
+		if len(tasks[j].ChildUniqueIDs) > 0 {
+			for _, child := range tasks[j].ChildUniqueIDs {
+				if tasks[taskIndices[child]].Etc.Before(tasks[j].Etc) {
+					tasks[j].Etc = tasks[taskIndices[child]].Etc
+				}
+			}
+		}
+	}
 	return tasks
 
 }

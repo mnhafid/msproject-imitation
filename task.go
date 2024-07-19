@@ -44,6 +44,8 @@ type Task struct {
 	Etc             time.Time
 	StartEtc        time.Time
 	ProjectCalendar ProjectCalendar
+	ConstraintType  string
+	ConstraintDate  string
 }
 
 type Predecessor struct {
